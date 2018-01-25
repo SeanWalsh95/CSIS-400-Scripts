@@ -1,43 +1,28 @@
 import re
 import numpy as np
-import statistics as stat
-import math
+import sympy as sp
+
 
 ALPHABET = "ZABCDEFGHIJKLMNOPQRSTUVWXY"
 
 def hill_cipher_key_invert(key):
-    determinate = np.linalg.det(key).round()
-    inverse_key = np.matrix( key.I * determinate ).round()
-    print ("Inverse Key: \n{}\n".format(inverse_key))
-    modded_inverse_key = inverse_key % len(ALPHABET)
-    return modded_inverse_key
+    return key.inv_mod( len(ALPHABET) )
 
-def hill_cipher_get_blocks(pt_string, block_size):
-    return [pt_string[i:i+block_size] for i in range(0, len(pt_string), block_size)]
-
-def get_str_as_int_list(string):
-    int_list=[]
-    for char in string:
-        int_list.append(ALPHABET.find(char))
-    return  int_list
-
-# ---------------------------------------
-# Testing code for hill_cipher_encrypt_block
-# ---------------------------------------
-# a = np.array([[1,2,7],[0,3,3],[4,4,1]])
-# b = np.array([6,15,21])
-# c = a @ b
-# new_string = ""
-# for num in c:
-#     new_string += ALPHABET[num % 26]
-# print (new_string)
-# ---------------------------------------
-def hill_cipher_encrypt_block(matrix_key, block_string):
-    char_int_list = get_str_as_int_list(block_string)
-    encrypted_block = ""
-    for num in (matrix_key.dot(np.array(char_int_list))%len(ALPHABET)).tolist()[0]:
-        encrypted_block += ALPHABET[int(num)]
-    return encrypted_block
+verbose = False
+def hill_cipher(matrix_key, block_size, string):
+    blocks = [string[i:i+block_size] for i in range(0, len(string), block_size)]
+    string = ""
+    for block in blocks:
+        char_int_list = [ALPHABET.find(char) for char in block]
+        new_block = ""
+        for char_int in matrix_key.dot( (char_int_list) ):
+            new_block += ALPHABET[ char_int % len(ALPHABET) ]
+        string += new_block
+        if verbose:
+            print( "{} -> {}".format(block , new_block) )
+    if verbose:
+        print ("\n")
+    return string
 
 def kasisk_examination(file_in,number_of_shifts):
     ct = ""
@@ -60,24 +45,16 @@ def kasisk_examination(file_in,number_of_shifts):
         if counts[i] > percentile_value:
             print ( "shift of {:0>2}: {:<5}".format(i+1,counts[i]) )
 
-
-
-key = "1,2,7;0,3,3;4,4,1"
-#key = "1,0,4;2,3,4;7,3,1"
-print(key)
-
 print ("\n")
 kasisk_examination('ct.txt',20)
 print ("\n")
 
-print ("encrypted blocks:")
-for block in hill_cipher_get_blocks("FOURSCOREANDSEVENYEAR",3):
-    print("{} -> {}".format(block ,hill_cipher_encrypt_block(np.matrix(key),block) ) )
+#key = sp.Matrix( ([1,0,4],[2,3,4],[7,3,1]) )
+key = sp.Matrix( ([1,2,7],[0,3,3],[4,4,1]) )
 
-rev_key = "9,0,16;14,1,3;12,22,23"
-#rev_key = "9,14,12;0,1,22;15,3,23"
-
-
-print ("decrypted blocks:")
-for block in hill_cipher_get_blocks("ADAYNUHQGEBLACNZMWCEP",3):
-    print("{} -> {}".format(block ,hill_cipher_encrypt_block(np.matrix(rev_key),block) ) )
+plain_text = "FOURSCOREANDSEVENYEAR"
+# Encrypt
+cipher_text = hill_cipher(key, 3, plain_text)
+# Decrypt
+decrypted_text = hill_cipher(hill_cipher_key_invert(key), 3, cipher_text)
+print( "OG_PT:{}\n   CT:{}\nDC_PT:{}".format(plain_text,cipher_text,decrypted_text) )
