@@ -24,7 +24,7 @@ def hill_cipher(matrix_key, block_size, string):
         print ("\n")
     return string
 
-def kasisk_examination(file_in,number_of_shifts):
+def kasiski_examination(file_in,number_of_shifts):
     ct = ""
     with open(file_in, 'r') as file:
         ct=file.read().replace('\n', '')
@@ -46,7 +46,7 @@ def kasisk_examination(file_in,number_of_shifts):
             print ( "shift of {:0>2}: {:<5}".format(i+1,counts[i]) )
 
 print ("\n")
-kasisk_examination('ct.txt',20)
+kasiski_examination('ct.txt',20)
 print ("\n")
 
 #key = sp.Matrix( ([1,0,4],[2,3,4],[7,3,1]) )
