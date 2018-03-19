@@ -1,4 +1,5 @@
 import re
+import operator
 import numpy as np
 import sympy as sp
 from collections import Counter
@@ -78,14 +79,16 @@ def kasiski_examination(file_in,number_of_shifts):
             if ct[j] == shifted_ct[j] and ct[j] != " ":
                 counts[i] += 1
 
-    frequent_matches = []
+    probable_shifts = []
     percentile_group = 80
     percentile_value = np.percentile(np.array(counts),percentile_group)
-    print ("values in or above the {}'th percentile ({:.2f})".format(percentile_group,percentile_value))
+    print ("shift values in or above the {}'th percentile ({:.2f})".format(percentile_group,percentile_value))
     for i in range(0,len(counts)):
         if counts[i] > percentile_value:
-            frequent_matches.append(i+1)
+            probable_shifts.append(i+1)
             print ( "shift of {:0>2}: {:<5}".format(i+1,counts[i]) )
+
+    return probable_shifts
 
 # returns a list of occurrences of characters based of on a offest
 def count_chars(file_in,offset):
@@ -94,18 +97,30 @@ def count_chars(file_in,offset):
         ct=file.read().replace('\n', '')
     ct = re.sub('[.,?!"\'-]', '', ct)
 
-    count_list = []
+    frequency_list = []
 
     # combines every n'th character for frequency analysis
     freq_matches = [ct[i::offset] for i in range(offset)]
     for string in freq_matches:
-        count_list.append(Counter(string))
-    return count_list
+        percent_freq = {}
+        count = Counter(string)
+        total_count =sum(count.values())
+        for char in count:
+            percent_freq[char] = round(count[char]/total_count, 5)
+        frequency_list.append(percent_freq)
+
+    return frequency_list
+
+
 
 print ("\n")
 kasiski_examination('ct.txt',20)
 print ("\n")
-print(count_chars('ct.txt',5))
+print(sorted(ENG_FRQ.items(), key=operator.itemgetter(1)))
+print ("\n")
+char_freq_list = count_chars('ct.txt',5)
+for char_freq in char_freq_list:
+    print(sorted(char_freq.items(), key=operator.itemgetter(1)))
 print ("\n")
 
 #key = sp.Matrix( ([1,0,4],[2,3,4],[7,3,1]) )
@@ -120,4 +135,7 @@ print( "OG_PT:{}\n   CT:{}\nDC_PT:{}".format(plain_text,cipher_text,decrypted_te
 
 print("\n")
 
-print("GCD:{}".format(euclids_gcd(12345,6789)))
+print("GCD:{}".format(euclids_gcd(1201,160)))
+
+print("\n")
+
