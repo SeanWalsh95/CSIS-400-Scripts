@@ -84,9 +84,28 @@ def decrypt_DES(data, key, rounds):
     print( "PT: {}".format(output) )
     return output
    
+def DES_from_file(filename):
+    lines = []
+    key = ""
+    data = ""
+    with open(filename, 'r') as f:
+        lines = f.read().splitlines()
+    key = lines[0]
+    for i in range(1,len(lines)):
+        data += lines[i]
+    out = encrypt_DES(data, key, 5)
+    with open(filename.replace('.txt','_out.txt'),'w') as f:
+        for i in range(len(out), 0, -12):
+            f.write( out[i-12:i] + "\n" )
+
+
 # data = "111111111111111111111111111111111111111111111111111111111111"
 # data = "111111111111000000000000111111111111000000000000111111111111"
 data = "000000111111000000111111000000111111000000111111000000111111"
 
 key = "010011001"
-decrypt_DES( encrypt_DES(data, key, 5) , key, 5)
+#decrypt_DES( encrypt_DES(data, key, 5) , key, 5)
+
+print("\n")
+
+DES_from_file("des_in.txt")
