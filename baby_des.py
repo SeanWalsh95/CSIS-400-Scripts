@@ -1,14 +1,18 @@
 import numpy as np
 import sympy as sp
+import copy
+debug = False
 
 class des_block(object):
-    
     def __init__(self, bitstring):
         if not isinstance(bitstring, str):
             raise TypeError("param must be string")
         self.left = str(bitstring[0:6])
         self.right = str(bitstring[6:12])
         self.round = 0
+
+    def swap(self):
+        self.left, self.right = self.right, self.left
     
 def DES_function(R,key):
     S_box_L = ["101","010","001","110","011","100","111","000","001","100","110","010","000","111","101","011"]
@@ -25,83 +29,64 @@ def DES_function(R,key):
     S_box_R_result = S_box_R[ int( S[4:8],2 ) ]
     
     # Combine S-box values and return result as new R
-    R = S_box_L_result + S_box_R_result
+    return ( S_box_L_result + S_box_R_result )
     
-    return R
-    
-def DES_round(block, key):
-    
-    if not isinstance(block, des_block):
+def DES_round(prev_block, key):
+    if not isinstance(prev_block, des_block):
         raise TypeError("block must be of type des_block")
+    block = copy.deepcopy(prev_block)
+
+    # perform DES function on block.right with key
+    f_result = DES_function(block.right, key)
     
-    R = block.right
-    L = block.left
-    
-    # perform DES function on R with key
-    f_result = DES_function(R, key)
-    
-    # XOR result of DES function with L
-    R = bin( int(L,2) ^ int(f_result,2) )[2:].zfill(6)
+    # XOR result of DES function with block.left
+    L_XOR_func = bin( int(block.left,2) ^ int(f_result,2) )[2:].zfill(6)
     
     # increase round count for both halves
     block.round += 1
     
     # Swap halves and return block n+1
-    block.left = R
-    block.right = L
+    block.left = block.right
+    block.right = L_XOR_func
     
     return block
-    
+     
+def sliding_window(key, block_num):
+    # gets sliding window of key for a given block 
+    return (key + key)[block_num%len(key):(block_num%len(key))+8]
+
 def encrypt_DES(data, key, rounds):
-    
     output = ""
-    
     for b in range(0, len(data), 12):
-        print( data[b:b+12] )
         block = des_block( data[b:b+12] )
         for i in range(0,rounds):
-            # gets sliding window of key for block i
-            key_window =  (key + key)[i%len(key):(i%len(key))+8]
-            print(key_window)
-            block = DES_round(block, key)
-        output += (block.left + block.right)
+            key_window =  sliding_window(key, i)
+            new_block = DES_round( block, key )
+            if debug: print("K:{} B:{} {} Bn:{} {}".format(key_window,block.left,block.right,new_block.left,new_block.right))
+            block = new_block
+        output += (new_block.left + new_block.right)
     
-    print( "out: {}".format(output) )
+    print( "CT: {}".format(output) )
     return output
 
-def unencrypt_DES(data, key, rounds):
-    
+def decrypt_DES(data, key, rounds):
     output = ""
-    
-    for b in range(len(data), -1, -12):
+    for b in range(len(data), 0, -12):
         block = des_block( data[b-12:b] )
+        block.swap()
         for i in range(rounds-1, -1,-1):
-            # gets sliding window of key for block i
-            key_window =  (key + key)[i%len(key):(i%len(key))+8]
-            block = DES_round(block, key)
-        output += (block.left + block.right)
-        
-    print( "out: {}".format(output) )
+            key_window = sliding_window(key, i)
+            new_block = DES_round( block, key )
+            if debug: print("K:{} B:{} {} Bn:{} {}".format(key_window,block.left,block.right,new_block.left,new_block.right))
+            block = new_block
+        output += (new_block.right + new_block.left)
     
-def XOR_example():
-    a = "001100"
-    b = "010010"
-    y = int(a,2) ^ int(b,2)
-    print('{0:06b}'.format(y))
-    
-#XOR_example()
-print("Result: {}".format(DES_function('000100','11001100')))
-
-block = des_block('011101000100')
-new_block = DES_round(block,'11001100')
-print( "{} {}".format(new_block.left,new_block.right ) )
-
-
-#data = "111111111111111111111111111111111111111111111111111111111111"
-data = "111111111111000000000000111111111111000000000000111111111111"
-
+    print( "PT: {}".format(output) )
+    return output
+   
+# data = "111111111111111111111111111111111111111111111111111111111111"
+# data = "111111111111000000000000111111111111000000000000111111111111"
+data = "000000111111000000111111000000111111000000111111000000111111"
 
 key = "010011001"
-data_out = encrypt_DES(data, key, 5)
-print("\n")
-unencrypt_DES(data_out, key, 5)
+decrypt_DES( encrypt_DES(data, key, 5) , key, 5)
