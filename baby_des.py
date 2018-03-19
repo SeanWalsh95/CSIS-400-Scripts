@@ -1,7 +1,5 @@
-import numpy as np
-import sympy as sp
 import copy
-debug = False
+from optparse import OptionParser
 
 class des_block(object):
     def __init__(self, bitstring):
@@ -62,7 +60,7 @@ def encrypt_DES(data, key, rounds):
         for i in range(0,rounds):
             key_window =  sliding_window(key, i)
             new_block = DES_round( block, key )
-            if debug: print("K:{} B:{} {} Bn:{} {}".format(key_window,block.left,block.right,new_block.left,new_block.right))
+            if verbose: print("K:{} B:{} {} [{}] Bn:{} {} [{}]".format(key_window,block.left,block.right,block.round,new_block.left,new_block.right,new_block.round))
             block = new_block
         output += (new_block.left + new_block.right)
     
@@ -77,35 +75,69 @@ def decrypt_DES(data, key, rounds):
         for i in range(rounds-1, -1,-1):
             key_window = sliding_window(key, i)
             new_block = DES_round( block, key )
-            if debug: print("K:{} B:{} {} Bn:{} {}".format(key_window,block.left,block.right,new_block.left,new_block.right))
+            if verbose: print("K:{} B:{} {} [{}] Bn:{} {} [{}]".format(key_window,block.left,block.right,block.round,new_block.left,new_block.right,new_block.round))
             block = new_block
         output += (new_block.right + new_block.left)
     
     print( "PT: {}".format(output) )
     return output
    
-def DES_from_file(filename):
-    lines = []
-    key = ""
-    data = ""
+def encrypt_DES_from_file(filename, rounds):
+    out = ""
     with open(filename, 'r') as f:
         lines = f.read().splitlines()
-    key = lines[0]
-    for i in range(1,len(lines)):
-        data += lines[i]
-    out = encrypt_DES(data, key, 5)
+        key = lines[0]
+        for i in range(1,len(lines)):
+            data += lines[i]
+        out = encrypt_DES(data, key, rounds)
     with open(filename.replace('.txt','_out.txt'),'w') as f:
         for i in range(len(out), 0, -12):
             f.write( out[i-12:i] + "\n" )
 
+def decrypt_DES_from_file(filename, key, rounds):
+    with open(filename, 'r') as f:
+        data  = f.read().replace('\n','')
+        out = decrypt_DES(data, key, rounds)
+        print("\n\n")
+        with open('DES_plaintext.txt','w') as f:
+            for i in range(len(out), 0, -12):
+                f.write( out[i-12:i] + "\n" )
 
-# data = "111111111111111111111111111111111111111111111111111111111111"
-# data = "111111111111000000000000111111111111000000000000111111111111"
-data = "000000111111000000111111000000111111000000111111000000111111"
+def main():
+    global verbose
+    verbose = False
 
-key = "010011001"
-#decrypt_DES( encrypt_DES(data, key, 5) , key, 5)
+    usage = "usage: %prog [options] filename rounds"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-v", "--verbose",action="store_true", dest="verbose",
+                        help="prints extra information about encryption/decryption")
+    parser.add_option("-t", "--test",action="store_true", dest="testing", default=True,
+                        help="ignore cli args and run test data [Default]")
+    parser.add_option("-k", "--key",action="store", type="string", dest="key",
+                        help="flag to pass in key from cli")
+    parser.add_option("-e", "--encrypt",action="store_true", dest="encrypt",
+                        help="encrypts data from file")
+    parser.add_option("-d", "--decrypt",action="store_true", dest="decrypt",
+                        help="decrypt data from file")
+   
+    (options, args) = parser.parse_args()
 
-print("\n")
+    verbose = options.verbose
 
-DES_from_file("des_in.txt")
+    if options.encrypt:
+        encrypt_DES_from_file(args[0],int(args[1]))
+
+    if options.decrypt:
+        decrypt_DES_from_file(args[0], "010011001", int(args[1]))
+
+    if options.testing:
+        verbose = True
+        # data = "111111111111111111111111111111111111111111111111111111111111"
+        # data = "111111111111000000000000111111111111000000000000111111111111"
+        data = "000000111111000000111111000000111111000000111111000000111111"
+
+        key = "010011001"
+        decrypt_DES( encrypt_DES(data, key, 5) , key, 5)
+
+
+main()
