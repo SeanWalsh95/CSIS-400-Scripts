@@ -91,7 +91,7 @@ def encrypt_DES(data, key, rounds):
 def decrypt_DES(data, key, rounds):
     results = []
     blocks = parse_blocks(data)
-    for block in reversed(blocks):
+    for block in blocks:
         block.swap()
         for i in range(rounds-1, -1,-1):
             key_window = sliding_window(key, i)
