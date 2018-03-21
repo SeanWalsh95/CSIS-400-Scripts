@@ -21,16 +21,18 @@ class des_block(object):
     def swap(self):
         self.left, self.right = self.right, self.left
 
-
+# XOR's two bit-strings together
+# s1 = first bit-string 
+# s2 = second bit-string
+# zfill = desired size of result bit-string w/ leading zeros
 def XOR(s1,s2,zfill):
-    # XOR's two bit-strings together, fills result with 
-    # leading zeros to a given length
     return bin( int( str(s1) ,2) ^ int( str(s2) ,2) )[2:].zfill(zfill)
     
+# returns sliding window of key for a given block 
 def sliding_window(key, block_num):
-    # gets sliding window of key for a given block 
     return (key + key)[block_num%len(key):(block_num%len(key))+8]
     
+# breaks single bitstring into blocks of length 12
 def parse_blocks(data):
     data = str(data)
     blocks = []
@@ -76,6 +78,7 @@ def DES_round(prev_block, key):
     
     return block
     
+
 def encrypt_DES(data, key, rounds):
     results = []
     blocks = parse_blocks(data)
@@ -102,7 +105,6 @@ def decrypt_DES(data, key, rounds):
         results.append(block)
     return results
     
-# block cipher( (PT XOR VEXTOR), key) == CT and next Vector 
 def encrypt_DES_CBC(data, init_v, key, rounds):
     results = []
     vector = init_v
@@ -115,8 +117,7 @@ def encrypt_DES_CBC(data, init_v, key, rounds):
         vector = block
         results.append(block)
     return results
-    
-# XOR( block cipher(CT, key), vector) == CT and next Vector 
+
 def decrypt_DES_CBC(data, init_v, key, rounds):
     results = []
     vector = init_v
@@ -130,6 +131,7 @@ def decrypt_DES_CBC(data, init_v, key, rounds):
         results.append(block_XOR_vector)
     return results
     
+
 def enc_file_DES(filename, key, rounds, init_vector=None):
     with open(filename, 'r') as f:
         data  = f.read().replace('\n','')
@@ -153,11 +155,11 @@ def dec_file_DES(filename, key, rounds, init_vector=None):
 def main():
     global verbose
     verbose = False
-    rounds = 5
+    rounds = 4
     key = "010011001"
     init_vector = "111111111111"
 
-    usage = "usage: %prog [options] filename"
+    usage = "usage: python %prog [options] filename"
     parser = OptionParser(usage=usage)
     parser.add_option("--verbose",action="store_true", dest="verbose",
                         help="prints extra information about encryption/decryption")
@@ -190,9 +192,9 @@ def main():
     if options.vector != None:
         init_vector = options.vector
     
-    if options.encrypt:
+    if options.encrypt and options.ECB:
         enc_file_DES(args[0], key, rounds)
-    if options.decrypt:
+    if options.decrypt and options.ECB:
         dec_file_DES(args[0], key, rounds)
 
     if options.encrypt and options.CBC:
@@ -200,10 +202,8 @@ def main():
     if options.decrypt and options.CBC:
         dec_file_DES(args[0], key, rounds, init_vector)
     
-    
-    if True:
-        # data = "111111111111111111111111111111111111111111111111111111111111"
-        # data = "111111111111000000000000111111111111000000000000111111111111"
+    # Test Data 
+    if False:
         data = "000000111111000000111111000000111111000000111111000000111111"
         key = "010011001"
         
