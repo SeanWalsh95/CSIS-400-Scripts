@@ -40,7 +40,7 @@ def parse_blocks(data):
         blocks.append( des_block( data[b:b+12] ) )
     return blocks
 
-
+# DES Function ( Expander & S-Boxes )
 def DES_function(R,key):
     S_box_L = ["101","010","001","110","011","100","111","000","001","100","110","010","000","111","101","011"]
     S_box_R = ["100","000","110","101","111","001","011","010","101","011","000","111","110","010","001","100"]
@@ -58,6 +58,7 @@ def DES_function(R,key):
     # Combine S-box values and return result as new R
     return ( S_box_L_result + S_box_R_result )
     
+# Performs a single round of DES
 def DES_round(prev_block, key):
     if not isinstance(prev_block, des_block):
         raise TypeError("block must be of type des_block")
@@ -78,7 +79,8 @@ def DES_round(prev_block, key):
     
     return block
     
-
+# Loops for each block of data (every 12 bits)
+# performs DES round a given number of times
 def encrypt_DES(data, key, rounds):
     results = []
     blocks = parse_blocks(data)
@@ -91,6 +93,9 @@ def encrypt_DES(data, key, rounds):
         results.append(block)
     return results
     
+# Loops for each block of data (every 12 bits)
+# DES Rounds loop is reversed to get the correct key value
+# performs DES round a given number of times
 def decrypt_DES(data, key, rounds):
     results = []
     blocks = parse_blocks(data)
@@ -110,7 +115,7 @@ def encrypt_DES_CBC(data, init_v, key, rounds):
     vector = init_v
     blocks = parse_blocks(data)
     for block in blocks:
-        pt_block = copy.deepcopy(block)
+        pt_block = copy.deepcopy(block) # Only needed for printing reasons
         pt_XOR_iv = des_block( XOR(vector, block, 12) )
         block = encrypt_DES(str(pt_XOR_iv), key, rounds)[0]
         if verbose: print("PT:{} V:{} XOR:{} CT:{}".format(pt_block, vector, pt_XOR_iv,block))
@@ -123,14 +128,13 @@ def decrypt_DES_CBC(data, init_v, key, rounds):
     vector = init_v
     blocks = parse_blocks(data)
     for block in blocks:
-        en_block = copy.deepcopy(block)
+        en_block = copy.deepcopy(block) # Needed for CBC decryption
         block = decrypt_DES(block, key, rounds)[0]
         block_XOR_vector = des_block( XOR( vector, block, 12) )
         if verbose: print("CT:{} B:{} V:{} XOR:{}".format(en_block, block, vector, block_XOR_vector))
         vector = en_block
         results.append(block_XOR_vector)
     return results
-    
 
 def enc_file_DES(filename, key, rounds, init_vector=None):
     with open(filename, 'r') as f:
@@ -156,7 +160,8 @@ def main():
     global verbose
     verbose = False
     rounds = 4
-    key = "010011001"
+    # key = "010011001" # OG Testing key
+    key = "101101101"   # Dan's test data Key
     init_vector = "111111111111"
 
     usage = "usage: python %prog [options] filename"
@@ -169,6 +174,11 @@ def main():
     parser.add_option("-d", "--DEC",action="store_true", dest="decrypt",
                         help="decrypt data from [filename]")
     
+    parser.add_option("--ECB",action="store_true", dest="ECB", default=True,
+                        help="DES ECB mode [Default]")
+    parser.add_option("--CBC",action="store_true", dest="CBC",
+                        help="DES CBC mode")
+    
     parser.add_option("-r", action="store", type="int", dest="rounds",
                         help="how many rounds to perform DES [Default={}]".format(rounds))
     parser.add_option("-k", action="store", type="string", dest="key",
@@ -176,13 +186,8 @@ def main():
     parser.add_option("-v", action="store", type="string", dest="vector",
                         help="value of the init_vector for CBC [Default='{}']".format(init_vector))
     
-    parser.add_option("--ECB",action="store_true", dest="ECB", default=True,
-                        help="DES ECB mode [Default]")
-    parser.add_option("--CBC",action="store_true", dest="CBC",
-                        help="DES CBC mode")
-    
     (options, args) = parser.parse_args()
-
+    
     if options.verbose != None:
         verbose = options.verbose
     if options.rounds != None:
@@ -220,7 +225,6 @@ def main():
         print( "CT: {}".format( enc ) )
         dec = decrypt_DES_CBC( ''.join(map(str, enc)), init_vector, key, rounds)
         print( "PT: {}".format( dec ) )
-
 
 main()
 
